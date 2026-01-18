@@ -59,7 +59,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // Google ML Kit Document Scanner
-    implementation(libs.document.scanner)
+    implementation(libs.play.services.mlkit.document.scanner)
     // Activity result API
     implementation(libs.androidx.activity.ktx)
     // Coil for image loading
