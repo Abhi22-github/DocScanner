@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                 }
                             ) {
-                                Text(text = "Scan PDF")
+                                Text(text = "Scan")
                             }
 
                         }
