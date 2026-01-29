@@ -49,9 +49,7 @@ class MainActivity : ComponentActivity() {
 
         // Create the scanner instance and pass the options
         val scanner = GmsDocumentScanning.getClient(options)
-
-
-
+        
         setContent {
             DocScannerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
