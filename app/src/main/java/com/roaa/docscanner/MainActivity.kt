@@ -19,12 +19,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import coil.compose.AsyncImage
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
@@ -33,6 +36,7 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.roaa.docscanner.ui.theme.DocScannerTheme
+import com.roaa.docscanner.utils.Destinations
 import java.io.File
 import java.io.FileOutputStream
 
@@ -49,9 +53,30 @@ class MainActivity : ComponentActivity() {
 
         // Create the scanner instance and pass the options
         val scanner = GmsDocumentScanning.getClient(options)
-        
+
         setContent {
             DocScannerTheme {
+                val backStack = remember { mutableStateListOf<Destinations>(Destinations.HomeScreen) }
+
+                NavDisplay(
+                    backStack = backStack,
+                    onBack = {
+                        if (backStack.size > 1) {
+                            backStack.removeLastOrNull()
+                        }
+                    },
+                    entryProvider = entryProvider {
+                        entry<Destinations.HomeScreen> {
+                            HomeScreen()
+                        }
+
+                        entry<Destinations.PreviewScreen>{
+                            PreviewScreen()
+                        }
+
+                    }
+                )
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Surface(
                         modifier = Modifier
@@ -66,11 +91,12 @@ class MainActivity : ComponentActivity() {
                             onResult = {
                                 // Handle the result
                                 if (it.resultCode == RESULT_OK) {
-                                    val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
+                                    val result =
+                                        GmsDocumentScanningResult.fromActivityResultIntent(it.data)
                                     imageUris = result?.pages?.map { it.imageUri } ?: emptyList()
 
                                     result?.pdf?.let { pdf ->
-                                        val fos = FileOutputStream(File(filesDir,"scan.pdf"))
+                                        val fos = FileOutputStream(File(filesDir, "scan.pdf"))
                                         contentResolver.openInputStream(pdf.uri)?.use {
                                             it.copyTo(fos)
                                         }
