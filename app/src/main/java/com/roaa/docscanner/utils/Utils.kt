@@ -2,6 +2,7 @@ package com.roaa.docscanner.utils
 
 import android.net.Uri
 import androidx.navigation3.runtime.NavKey
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,5 +11,5 @@ sealed interface Destinations : NavKey {
     data object HomeScreen : Destinations
 
     @Serializable
-    data class PreviewScreen(val uriList: List<Uri>) : Destinations
+    data class PreviewScreen(val result: GmsDocumentScanningResult) : Destinations
 }

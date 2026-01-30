@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DocScannerTheme {
-                val backStack =
+                 val backStack =
                     remember { mutableStateListOf<Destinations>(Destinations.HomeScreen) }
 
                 NavDisplay(
@@ -34,8 +34,8 @@ class MainActivity : ComponentActivity() {
                             })
                         }
 
-                        entry<Destinations.PreviewScreen> { uriList ->
-                            PreviewScreen(imageUris = uriList.uriList)
+                        entry<Destinations.PreviewScreen> { result ->
+                            PreviewScreen(result = result.result )
                         }
 
                     }

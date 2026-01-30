@@ -28,7 +28,7 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (List<Uri>) -> Unit) {
+fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (GmsDocumentScanningResult) -> Unit) {
 
     // Create options using the builder(Builder Pattern)
     val options = GmsDocumentScannerOptions.Builder()
@@ -50,14 +50,10 @@ fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (List<Uri
             if (it.resultCode == RESULT_OK) {
                 val result =
                     GmsDocumentScanningResult.fromActivityResultIntent(it.data)
-                navigateToPreviewScreen(result?.pages?.map { it.imageUri } ?: emptyList())
+                result?.let {
+                    navigateToPreviewScreen(it)
+                }
 
-//                result?.pdf?.let { pdf ->
-//                    val fos = FileOutputStream(File(filesDir, "scan.pdf"))
-//                    contentResolver.openInputStream(pdf.uri)?.use {
-//                        it.copyTo(fos)
-//                    }
-//                }
             }
         }
     )
