@@ -11,5 +11,14 @@ sealed interface Destinations : NavKey {
     data object HomeScreen : Destinations
 
     @Serializable
-    data class PreviewScreen(val result: GmsDocumentScanningResult) : Destinations
+    data class PreviewScreen(
+        val result: GmsDocumentScanningResult? = null,
+        val pdfUri: Uri? = null
+    ) :
+        Destinations
+}
+
+enum class ActionType{
+    PDF,
+    SCAN,
 }

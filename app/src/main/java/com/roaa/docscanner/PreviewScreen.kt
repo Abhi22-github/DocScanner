@@ -2,21 +2,25 @@ package com.roaa.docscanner
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Environment
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,12 +28,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.core.graphics.createBitmap
 import coil.compose.AsyncImage
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import com.roaa.docscanner.utils.ActionType
 import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDateTime
@@ -37,10 +50,32 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun PreviewScreen(modifier: Modifier = Modifier, result: GmsDocumentScanningResult) {
+fun PreviewScreen(
+    modifier: Modifier = Modifier,
+    result: GmsDocumentScanningResult?,
+    pdfUri: Uri?,
+    onSaveClicked: () -> Unit
+) {
 
     val context = LocalContext.current
-    val imageUris = result.pages?.map { it.imageUri } ?: emptyList()
+    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val type = if (pdfUri != null) ActionType.PDF else ActionType.SCAN
+
+    LaunchedEffect(type, pdfUri, result) {
+        imageUris = when (type) {
+            ActionType.PDF -> {
+                pdfUri?.let {
+                    renderPdfUriToImageUris(context, it)
+                } ?: emptyList()
+            }
+
+            ActionType.SCAN -> {
+                result?.pages?.map { it.imageUri } ?: emptyList()
+            }
+        }
+    }
+
+    val pagerState = rememberPagerState { imageUris.size }
 
 
     Scaffold(modifier = modifier.fillMaxSize()) {
@@ -60,27 +95,25 @@ fun PreviewScreen(modifier: Modifier = Modifier, result: GmsDocumentScanningResu
                     modifier = Modifier.fillMaxSize()
                 ) {
 
-                    // 🔼 Top content (LazyRow)
-                    LazyRow(
+                    HorizontalPager(
+                        state = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(imageUris) { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                contentScale = ContentScale.FillWidth,
-                                modifier = Modifier
-                                    .width(160.dp)
-                                    .aspectRatio(3f / 4f)
-                            )
-                        }
+                            .background(Color.Red)
+                            .weight(.8f), // takes available space above buttons
+                        pageSpacing = 12.dp
+                    ) { page ->
+                        AsyncImage(
+                            model = imageUris[page],
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                        )
                     }
 
-                    // 🧲 Push buttons to bottom
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // 🔽 Bottom actions
                     Row(
@@ -95,11 +128,12 @@ fun PreviewScreen(modifier: Modifier = Modifier, result: GmsDocumentScanningResu
                         Spacer(modifier = Modifier.width(12.dp))
 
                         FilledTonalButton(onClick = {
-                            result.pdf?.let { pdf ->
+                            result?.pdf?.let { pdf ->
                                 val time = getDateTimeForFileName()
-                                savePdfInternal(context, pdf.uri,time)
-                                savePdfPublic(context, pdf.uri,time)
+                                savePdfInternal(context, pdf.uri, time)
+                                savePdfPublic(context, pdf.uri, time)
                             }
+                            onSaveClicked()
 
                         }) {
                             Text("Save")
@@ -113,7 +147,7 @@ fun PreviewScreen(modifier: Modifier = Modifier, result: GmsDocumentScanningResu
 
 }
 
-fun savePdfInternal(context: Context, pdfUri: Uri, fileName: String ) {
+fun savePdfInternal(context: Context, pdfUri: Uri, fileName: String) {
     val file = File(context.filesDir, "$fileName.pdf")
 
     context.contentResolver.openInputStream(pdfUri)?.use { input ->
@@ -150,3 +184,66 @@ fun getDateTimeForFileName(): String {
     val formatter = DateTimeFormatter.ofPattern("MMMdd_HHmm", Locale.ENGLISH)
     return LocalDateTime.now().format(formatter)
 }
+
+fun renderPdfUriToImageUris(
+    context: Context,
+    pdfUri: Uri
+): List<Uri> {
+
+    val imageUris = mutableListOf<Uri>()
+
+    // ✅ Unique folder per PDF
+    val pdfKey = pdfUri.toString().hashCode().toString()
+    val outputDir = File(context.cacheDir, "pdf_pages/$pdfKey").apply {
+        mkdirs()
+    }
+
+    val fileDescriptor =
+        context.contentResolver.openFileDescriptor(pdfUri, "r")
+            ?: return emptyList()
+
+    PdfRenderer(fileDescriptor).use { renderer ->
+        for (pageIndex in 0 until renderer.pageCount) {
+
+            val imageFile = File(outputDir, "page_${pageIndex + 1}.jpg")
+
+            // ✅ Skip rendering if already cached
+            if (imageFile.exists()) {
+                val cachedUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    imageFile
+                )
+                imageUris.add(cachedUri)
+                continue
+            }
+
+            renderer.openPage(pageIndex).use { page ->
+                val bitmap = createBitmap(page.width, page.height)
+
+                page.render(
+                    bitmap,
+                    null,
+                    null,
+                    PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                )
+
+                FileOutputStream(imageFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                }
+
+                val imageUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    imageFile
+                )
+
+                imageUris.add(imageUri)
+            }
+        }
+    }
+
+    return imageUris
+}
+
+

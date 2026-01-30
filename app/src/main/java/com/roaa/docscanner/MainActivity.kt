@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.roaa.docscanner.ui.theme.DocScannerTheme
 import com.roaa.docscanner.utils.Destinations
@@ -17,7 +16,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DocScannerTheme {
-                 val backStack =
+                val backStack =
                     remember { mutableStateListOf<Destinations>(Destinations.HomeScreen) }
 
                 NavDisplay(
@@ -29,13 +28,24 @@ class MainActivity : ComponentActivity() {
                     },
                     entryProvider = entryProvider {
                         entry<Destinations.HomeScreen> {
-                            HomeScreen(navigateToPreviewScreen = {
-                                backStack.add(Destinations.PreviewScreen(it))
-                            })
+                            HomeScreen(
+                                navigateToPreviewScreen = {
+                                    backStack.add(Destinations.PreviewScreen(result = it))
+                                },
+                                navigateToPreviewScreenFromPDF = {
+                                    backStack.add(Destinations.PreviewScreen(pdfUri = it))
+                                })
                         }
 
                         entry<Destinations.PreviewScreen> { result ->
-                            PreviewScreen(result = result.result )
+                            PreviewScreen(
+                                result = result.result,
+                                pdfUri = result.pdfUri,
+                                onSaveClicked = {
+                                    if (backStack.size > 1) {
+                                        backStack.removeLastOrNull()
+                                    }
+                                })
                         }
 
                     }

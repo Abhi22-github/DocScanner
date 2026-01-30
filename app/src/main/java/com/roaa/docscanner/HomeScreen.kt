@@ -2,6 +2,7 @@ package com.roaa.docscanner
 
 import android.app.Activity
 import android.app.Activity.RESULT_OK
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,9 +29,14 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import java.io.File
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (GmsDocumentScanningResult) -> Unit) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    navigateToPreviewScreen: (GmsDocumentScanningResult) -> Unit,
+    navigateToPreviewScreenFromPDF: (Uri) -> Unit
+) {
 
     // Create options using the builder(Builder Pattern)
     val options = GmsDocumentScannerOptions.Builder()
@@ -71,6 +79,16 @@ fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (GmsDocum
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                LazyColumn() {
+                    items(listSavedInternalPdfs(context)) {
+                        Button(onClick = {
+                            val uri = Uri.fromFile(it)
+                            navigateToPreviewScreenFromPDF(uri)
+                        }) {
+                            Text(text = it.name)
+                        }
+                    }
+                }
                 Button(
                     onClick = {
                         activity?.let {
@@ -95,4 +113,13 @@ fun HomeScreen(modifier: Modifier = Modifier, navigateToPreviewScreen: (GmsDocum
         }
 
     }
+}
+
+fun listSavedInternalPdfs(context: Context): List<File> {
+    return context.filesDir
+        .listFiles { file ->
+            file.isFile && file.extension.equals("pdf", ignoreCase = true)
+        }
+        ?.toList()
+        ?: emptyList()
 }
