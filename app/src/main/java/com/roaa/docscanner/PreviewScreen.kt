@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Environment
-import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,11 +15,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -34,7 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -83,42 +82,45 @@ fun PreviewScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(it),
-            color = MaterialTheme.colorScheme.background
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
             ) {
 
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
 
-                    HorizontalPager(
-                        state = pagerState,
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Red)
-                            .weight(.8f), // takes available space above buttons
-                        pageSpacing = 12.dp
-                    ) { page ->
-                        AsyncImage(
-                            model = imageUris[page],
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                            .weight(0.8f)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+                    ) {
+                        HorizontalPager(
+                            state = pagerState,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                        )
+                                .fillMaxWidth(),
+                            pageSpacing = 12.dp
+                        ) { page ->
+                            AsyncImage(
+                                model = imageUris[page],
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
 
                     // 🔽 Bottom actions
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(16.dp, 12.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
                         OutlinedButton(onClick = { /* keep editing */ }) {
