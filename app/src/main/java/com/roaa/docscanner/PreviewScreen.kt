@@ -98,21 +98,24 @@ fun PreviewScreen(
                             .weight(0.8f)
                             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                     ) {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            pageSpacing = 12.dp
-                        ) { page ->
-                            AsyncImage(
-                                model = imageUris[page],
-                                contentDescription = null,
-                                contentScale = ContentScale.Fit,
+                        Column() {
+                            HorizontalPager(
+                                state = pagerState,
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                            )
+                                    .fillMaxWidth(),
+                                pageSpacing = 12.dp
+                            ) { page ->
+                                AsyncImage(
+                                    model = imageUris[page],
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
+                            }
+
                         }
                     }
 
