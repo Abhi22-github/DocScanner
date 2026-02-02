@@ -88,7 +88,6 @@ fun PreviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
